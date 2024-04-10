@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 import sys
 import tarfile
@@ -18,7 +19,9 @@ def get_latest_version():
         sys.exit(1)
 
 def get_current_version():
-    with open(f"{installFolder}/version", "r") as file:
+    if not os.path.isfile(os.path.join(installFolder, "version")):
+        return "0.0.0"
+    with open(os.path.join(installFolder, "version"), "r") as file:
         version = file.read()
         print(f"Current version: {version}")
         return version
@@ -28,8 +31,8 @@ def download_version(version):
         response = requests.get(f"https://dl.discordapp.net/apps/linux/{version}/discord-{version}.tar.gz")
 
         if (response.status_code == 200):
-            os.makedirs(f"{tmpFolder}", exist_ok=True)
-            with open(f"{tmpFolder}/discord-{version}.tar.gz", "wb") as file:
+            os.makedirs(tmpFolder, exist_ok=True)
+            with open(os.path.join(tmpFolder, f"discord-{version}.tar.gz"), "wb") as file:
                 file.write(response.content)
             print(f"Downloaded version {version}")
         else:
@@ -63,7 +66,7 @@ def install_version(version, versionFile):
             tar.extractall(tmpFolder)
             os.system(f"mv {tmpFolder}/{rootFolder}/* {installFolder}")
 
-        with open(f"{installFolder}/version", "w") as file:
+        with open(os.path.join(installFolder, "version"), "w") as file:
             file.write(version)
         os.system(f"rm -r {tmpFolder}")
         print(f"{version} installed")
@@ -71,12 +74,39 @@ def install_version(version, versionFile):
         print("Failed to extract the {version} version:", e)
         sys.exit(1)
 
+def register_software():
+    desktopfile = list(filter(re.compile("[a-zA-Z]+[.]desktop").match, os.listdir(installFolder)))
+    if len(desktopfile) != 1:
+        print("Too much or no .desktop file present")
+        sys.exit(1)
+    desktopfile = desktopfile[0]
+
+    values = {}
+    with open(os.path.join(installFolder, desktopfile), "r") as file:
+        for line in file:
+            line = line.strip()
+            if line == "[Desktop Entry]":
+                continue
+            key, value = line.strip().split('=')
+            values[key] = value
+    
+    values["Exec"] = "/usr/bin/python3 " + os.path.abspath(__file__)
+    values["Path"] = installFolder
+
+    print(os.path.abspath(__file__))
+
+    with open(os.path.join(os.path.expanduser("~/.local/share/applications"), desktopfile), "w") as file:
+        file.write("[Desktop Entry]\n")
+        for key, value in values.items():
+            file.write(f"{key}={value}\n")
+
 latestVersion = get_latest_version()
 currentVersion = get_current_version()
 if (latestVersion != currentVersion):
     latestVersinFile = download_version(latestVersion)
     remove_current_version()
     install_version(latestVersion, latestVersinFile)
+    register_software()
     print("Discord successfully installed")
 else:
     print("Discord not need to update")
