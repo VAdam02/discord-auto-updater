@@ -17,6 +17,12 @@ def get_latest_version():
         print("Failed to fetch the latest version:", e)
         sys.exit(1)
 
+def get_current_version():
+    with open(f"{installFolder}/version", "r") as file:
+        version = file.read()
+        print(f"Current version: {version}")
+        return version
+
 def download_version(version):
     try:
         response = requests.get(f"https://dl.discordapp.net/apps/linux/{version}/discord-{version}.tar.gz")
@@ -66,7 +72,11 @@ def install_version(version, versionFile):
         sys.exit(1)
 
 latestVersion = get_latest_version()
-latestVersinFile = download_version(latestVersion)
-remove_current_version()
-install_version(latestVersion, latestVersinFile)
-print("Discord successfully installed")
+currentVersion = get_current_version()
+if (latestVersion != currentVersion):
+    latestVersinFile = download_version(latestVersion)
+    remove_current_version()
+    install_version(latestVersion, latestVersinFile)
+    print("Discord successfully installed")
+else:
+    print("Discord not need to update")
