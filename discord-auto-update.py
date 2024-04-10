@@ -110,3 +110,6 @@ if (latestVersion != currentVersion):
     print("Discord successfully installed")
 else:
     print("Discord not need to update")
+
+if (len(sys.argv) == 1):
+    os.system(os.path.join(installFolder, "Discord"))
