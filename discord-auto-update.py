@@ -3,6 +3,7 @@ import os
 import psutil
 import re
 import requests
+import subprocess
 import sys
 import tarfile
 
@@ -135,4 +136,4 @@ else:
     print("Discord not need to update")
 
 if all(value == False for value in vars(args).values()):
-    os.system(os.path.join(installFolder, "Discord"))
+    subprocess.Popen([os.path.join(installFolder, "Discord")])
