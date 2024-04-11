@@ -1,4 +1,6 @@
+import argparse
 import os
+import psutil
 import re
 import requests
 import sys
@@ -6,6 +8,19 @@ import tarfile
 
 installFolder = os.path.expanduser("~/bin/Discord")
 tmpFolder = os.path.join(installFolder, "tmp")
+minBatteryLevel = 50
+
+def is_battery_ok():
+    battery_status = psutil.sensors_battery()
+
+    if battery_status.power_plugged:
+        return True
+    
+    if battery_status.percent < minBatteryLevel:
+        return False
+    else:
+        return True
+
 
 def get_latest_version():
     try:
@@ -100,6 +115,14 @@ def register_software():
         for key, value in values.items():
             file.write(f"{key}={value}\n")
 
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument("--soft-update", action="store_true", help="Set this flag to only update if the battery level is above 50%")
+args = parser.parse_args()
+
+if args.soft_update and not is_battery_ok():
+    print(f"Battery level is below {minBatteryLevel}%")
+    sys.exit(1)
+
 latestVersion = get_latest_version()
 currentVersion = get_current_version()
 if (latestVersion != currentVersion):
@@ -111,5 +134,5 @@ if (latestVersion != currentVersion):
 else:
     print("Discord not need to update")
 
-if (len(sys.argv) == 1):
+if all(value == False for value in vars(args).values()):
     os.system(os.path.join(installFolder, "Discord"))
