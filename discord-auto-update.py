@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 import psutil
 import re
 import requests
@@ -13,26 +14,33 @@ minBatteryLevel = 50
 
 def is_battery_ok():
     battery_status = psutil.sensors_battery()
-
-    if battery_status.power_plugged:
-        return True
-    
-    if battery_status.percent < minBatteryLevel:
-        return False
-    else:
-        return True
-
+    return battery_status.power_plugged or battery_status.percent >= minBatteryLevel
 
 def get_latest_version():
     try:
         response = requests.get("https://discord.com/api/v10/updates?platform=linux")
         response.raise_for_status()
         version = response.json()["name"]
-        print(f"Latest version: {version}")
+        print(f"Latest version: {version}", flush=True)
         return version
     except requests.exceptions.RequestException as e:
-        print("Failed to fetch the latest version:", e)
-        sys.exit(1)
+        print("Failed to fetch the latest version: {e}", flush=True)
+        return False
+
+def get_latest_version_with_retry(initialCooldown = 5, cooldownMultiplier = 2, maxRetries = 5):
+    cooldown = initialCooldown
+    for i in range(maxRetries):
+        if i > 0:
+            print(f"Failed to fetch the latest version {i}/{maxRetries} times. Retrying in {cooldown} seconds...", flush=True)
+        else:
+            print(f"Waiting to internet connection for {cooldown} seconds...", flush=True)
+        time.sleep(cooldown)
+        cooldown *= cooldownMultiplier
+        latestVersion = get_latest_version()
+        if latestVersion:
+            return latestVersion
+    print("Failed to fetch the latest version {maxRetries} times.", flush=True)
+    sys.exit(1)
 
 def get_current_version():
     if not os.path.isfile(os.path.join(installFolder, "version")):
@@ -124,7 +132,7 @@ if args.soft_update and not is_battery_ok():
     print(f"Battery level is below {minBatteryLevel}%")
     sys.exit(1)
 
-latestVersion = get_latest_version()
+latestVersion = get_latest_version_with_retry()
 currentVersion = get_current_version()
 if (latestVersion != currentVersion):
     latestVersinFile = download_version(latestVersion)
@@ -136,4 +144,5 @@ else:
     print("Discord not need to update")
 
 if all(value == False for value in vars(args).values()):
+    print("Starting Discord")
     subprocess.Popen([os.path.join(installFolder, "Discord")])
