@@ -8,7 +8,9 @@ import subprocess
 import sys
 import tarfile
 
+#installFolder = os.path.expanduser("/usr/share/discord/Discord")
 installFolder = os.path.expanduser("~/bin/Discord")
+desktopFolder = os.path.expanduser("~/.local/share/applications")
 tmpFolder = os.path.join(installFolder, "tmp")
 minBatteryLevel = 50
 
@@ -44,10 +46,11 @@ def get_latest_version_with_retry(initialCooldown = 5, cooldownMultiplier = 2, m
 
 def get_current_version():
     if not os.path.isfile(os.path.join(installFolder, "version")):
+        print(f"Current version not found", flush=True)
         return "0.0.0"
     with open(os.path.join(installFolder, "version"), "r") as file:
         version = file.read()
-        print(f"Current version: {version}")
+        print(f"Current version: {version}", flush=True)
         return version
 
 def download_version(version):
@@ -58,14 +61,14 @@ def download_version(version):
             os.makedirs(tmpFolder, exist_ok=True)
             with open(os.path.join(tmpFolder, f"discord-{version}.tar.gz"), "wb") as file:
                 file.write(response.content)
-            print(f"Downloaded version {version}")
+            print(f"Downloaded version {version}", flush=True)
         else:
-            print(f"Failed to download version {version} (status code: {response.status_code})")
+            print(f"Failed to download version {version} (status code: {response.status_code})", flush=True)
             sys.exit(1)
 
         return f"discord-{version}.tar.gz"
     except Exception as e:
-        print("Failed to download the latest version:", e)
+        print(f"Failed to download the latest version: {e}", flush=True)
         sys.exit(1)
 
 def remove_current_version():
@@ -78,9 +81,9 @@ def remove_current_version():
                 os.system(f"rm -rf {itemPath}")
             else:
                 os.remove(itemPath)
-        print("Current version removed")
+        print("Current version removed", flush=True)
     except Exception as e:
-        print("Failed to remove the current version:", e)
+        print("Failed to remove the current version: {e}", flush=True)
         sys.exit(1)
 
 def install_version(version, versionFile):
@@ -95,13 +98,13 @@ def install_version(version, versionFile):
         os.system(f"rm -r {tmpFolder}")
         print(f"{version} installed")
     except Exception as e:
-        print("Failed to extract the {version} version:", e)
+        print("Failed to extract the {version} version: {e}", flush=True)
         sys.exit(1)
 
 def register_software():
     desktopfile = list(filter(re.compile("[a-zA-Z]+[.]desktop").match, os.listdir(installFolder)))
     if len(desktopfile) != 1:
-        print("Too much or no .desktop file present")
+        print("Too much or no .desktop file present", flush=True)
         sys.exit(1)
     desktopfile = desktopfile[0]
 
@@ -114,25 +117,28 @@ def register_software():
             key, value = line.strip().split('=')
             values[key] = value
     
-    values["Exec"] = "/usr/bin/python3 " + os.path.abspath(__file__)
+    values["Exec"] = "python3 " + os.path.abspath(__file__)
     values["Path"] = installFolder
+    values["Icon"] = os.path.join(installFolder, "discord.png")
 
-    print(os.path.abspath(__file__))
-
-    with open(os.path.join(os.path.expanduser("~/.local/share/applications"), desktopfile), "w") as file:
+    with open(os.path.join(desktopFolder, desktopfile), "w") as file:
         file.write("[Desktop Entry]\n")
         for key, value in values.items():
             file.write(f"{key}={value}\n")
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--soft-update", action="store_true", help="Set this flag to only update if the battery level is above 50%")
+parser.add_argument("--retry", action="store_true", help="Set this flag to retry the download if it fails")
 args = parser.parse_args()
 
 if args.soft_update and not is_battery_ok():
     print(f"Battery level is below {minBatteryLevel}%")
     sys.exit(1)
 
-latestVersion = get_latest_version_with_retry()
+if args.retry:
+    latestVersion = get_latest_version_with_retry()
+else:
+    latestVersion = get_latest_version()
 currentVersion = get_current_version()
 if (latestVersion != currentVersion):
     latestVersinFile = download_version(latestVersion)
