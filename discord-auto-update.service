@@ -1,0 +1,11 @@
+[Unit]
+Description=Autoupdater Service
+After=network.target
+
+[Service]
+User=discord-auto-update
+ExecStart=python3 /usr/share/discord/updater/discord-auto-update.py --soft-update --retry
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

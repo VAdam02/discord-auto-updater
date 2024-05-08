@@ -8,9 +8,9 @@ import subprocess
 import sys
 import tarfile
 
-#installFolder = os.path.expanduser("/usr/share/discord/Discord")
-installFolder = os.path.expanduser("~/bin/Discord")
-desktopFolder = os.path.expanduser("~/.local/share/applications")
+installFolder = "/usr/share/discord"
+updaterFolder = os.path.join(installFolder, "updater")
+desktopFile = "/usr/share/applications/discord.desktop"
 tmpFolder = os.path.join(installFolder, "tmp")
 minBatteryLevel = 50
 
@@ -77,6 +77,9 @@ def remove_current_version():
             itemPath = os.path.join(installFolder, item)
             if itemPath == tmpFolder:
                 continue
+            if itemPath == updaterFolder:
+                continue
+            
             if os.path.isdir(itemPath):
                 os.system(f"rm -rf {itemPath}")
             else:
@@ -102,14 +105,14 @@ def install_version(version, versionFile):
         sys.exit(1)
 
 def register_software():
-    desktopfile = list(filter(re.compile("[a-zA-Z]+[.]desktop").match, os.listdir(installFolder)))
-    if len(desktopfile) != 1:
+    newdesktopfile = list(filter(re.compile("[a-zA-Z]+[.]desktop").match, os.listdir(installFolder)))
+    if len(newdesktopfile) != 1:
         print("Too much or no .desktop file present", flush=True)
         sys.exit(1)
-    desktopfile = desktopfile[0]
+    newdesktopfile = newdesktopfile[0]
 
     values = {}
-    with open(os.path.join(installFolder, desktopfile), "r") as file:
+    with open(os.path.join(installFolder, newdesktopfile), "r") as file:
         for line in file:
             line = line.strip()
             if line == "[Desktop Entry]":
@@ -117,11 +120,11 @@ def register_software():
             key, value = line.strip().split('=')
             values[key] = value
     
-    values["Exec"] = "python3 " + os.path.abspath(__file__)
+    values["Exec"] = "python3 " + os.path.join(updaterFolder, "discord-auto-update.py")
     values["Path"] = installFolder
     values["Icon"] = os.path.join(installFolder, "discord.png")
 
-    with open(os.path.join(desktopFolder, desktopfile), "w") as file:
+    with open(desktopFile, "w") as file:
         file.write("[Desktop Entry]\n")
         for key, value in values.items():
             file.write(f"{key}={value}\n")
