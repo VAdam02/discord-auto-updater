@@ -14,6 +14,7 @@ def create_user():
 def create_install_folder():
     os.system(f"sudo mkdir -p {installFolder}")
     os.system(f"sudo mkdir -p {updaterFolder}")
+    os.system(f"sudo mkdir -p /home/{user}")
 
 def create_desktop_file():
     os.system(f"sudo touch {desktopFile}")
@@ -31,6 +32,8 @@ def update_permissions():
     os.system(f"sudo chmod -R 755 {installFolder}")
     os.system(f"sudo chown {user}:{user} {desktopFile}")
     os.system(f"sudo chmod 644 {desktopFile}")
+    os.system(f"sudo chown {user}:{user} /home/{user}")
+    os.system(f"sudo chmod 644 /home/{user}")
 
 def install_dependencies():
     try:

@@ -16,6 +16,9 @@ minBatteryLevel = 50
 
 def is_battery_ok():
     battery_status = psutil.sensors_battery()
+    if battery_status is None:
+        return True
+    
     return battery_status.power_plugged or battery_status.percent >= minBatteryLevel
 
 def get_latest_version():
